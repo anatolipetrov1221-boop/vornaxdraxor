@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Vornax Draxor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            margin: 0; padding: 0; height: 100%;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow: hidden;
+        }
+        #game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+            box-sizing: border-box;
+            padding: 10px 0;
+        }
+        #top-bar {
+            width: 90vw;
+            max-width: 900px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            user-select: none;
+        }
+        #timer, #moves {
+            font-size: 1.3em;
+            flex: 1;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        #timer { text-align: left; }
+        #level-display {
+            font-size: 1.5em;
+            flex: 1;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        #maze_canvas {
+            border: 3px solid white;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            background: white;
+            cursor: none;
+            display: block;
+        }
+        #total-time {
+            margin-top: 15px;
+            font-size: 1.4em;
+            text-align: center;
+            user-select: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        #start-screen, #victory-screen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            text-align: center;
+            padding: 0 20px;
+            box-sizing: border-box;
+        }
+        #start-screen {
+            background: rgba(0,0,0,0.85);
+            color: white;
+        }
+        #start-screen img {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: contain;
+            user-select: none;
+            z-index: 0;
+        }
+        #start-screen-content {
+            position: relative;
+            z-index: 1;
+            max-width: 600px;
+            width: 90vw;
+            background: rgba(0,0,0,0.5);
+            border-radius: 15px;
+            padding: 30px 20px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.7);
+        }
+        #start-button {
+            margin-top: 20px;
+            padding: 20px 50px;
+            font-size: 1.8em;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(45deg, #ff6600, #ffcc00);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 6px 15px rgba(255, 102, 0, 0.7);
+            transition: background 0.3s ease, transform 0.2s ease;
+            user-select: none;
+        }
+        #start-button:hover, #start-button:focus {
+            background: linear-gradient(45deg, #ff5e00, #ffbf00);
+            transform: scale(1.1);
+            outline: none;
+        }
+        #victory-screen {
+            background: rgba(0,0,0,0.9);
+            display: none;
+            z-index: 1100;
+            color: yellow;
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        #victory-screen img {
+            max-width: 300px;
+            margin-bottom: 20px;
+            user-select: none;
+        }
+        #restart-button {
+            margin-top: 25px;
+            padding: 15px 40px;
+            font-size: 1.3em;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #ff6600, #ff9500);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(255, 102, 0, 0.6);
+            transition: background 0.3s ease, transform 0.2s ease;
+            user-select: none;
+        }
+        #restart-button:hover, #restart-button:focus {
+            background: linear-gradient(45deg, #ff5e00, #ff8f00);
+            transform: scale(1.05);
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="top-bar">
+            <div id="timer">Time: 0:00</div>
+            <div id="level-display">Level 1/100</div>
+            <div id="moves">Moves: 0</div>
+        </div>
+        <canvas id="maze_canvas" aria-label="Maze game canvas"></canvas>
+        <div id="total-time">Total Time: 0:00</div>
+    </div>
+
+    <div id="start-screen" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-describedby="welcome-desc">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/96ba337d-0406-4485-840e-736ed5dcc8b0.png" alt="Vornax Draxor poster with maze background" />
+        <div id="start-screen-content">
+            <h1 id="welcome-title" style="font-size: 3em; margin: 0;">Welcome to Vornax Draxor</h1>
+            <p id="welcome-desc" style="font-size: 1.5em;">Navigate through 100 increasingly challenging levels</p>
+            <button id="start-button" onclick="startGame()" autofocus>Start Game</button>
+        </div>
+    </div>
+
+    <div id="victory-screen" role="dialog" aria-modal="true" aria-labelledby="victory-title" aria-describedby="victory-desc">
+        <img src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/6ec92af3-9b63-4a33-9745-9a0854f753c5.png" alt="Celebratory image of a trophy in front of a maze, golden light shining, fireworks in the background, illustration style" />
+        <h2 id="victory-title">Congratulations!</h2>
+        <p id="victory-desc">You completed all 100 levels!</p>
+        <p id="victory-time">Total Time: 0:00</p>
+        <button id="restart-button" onclick="restartGame()">Play Again</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('maze_canvas');
+        const ctx = canvas.getContext('2d');
+        const levelDisplay = document.getElementById('level-display');
+        const timerDisplay = document.getElementById('timer');
+        const movesDisplay = document.getElementById('moves');
+        const totalTimeDisplay = document.getElementById('total-time');
+        const startScreen = document.getElementById('start-screen');
+        const victoryScreen = document.getElementById('victory-screen');
+        const victoryTime = document.getElementById('victory-time');
+        const topBar = document.getElementById('top-bar');
+
+        let grid = [];
+        let gridWidth;
+        let gridHeight;
+        let cellSize;
+        let player = { x: 0, y: 0 };
+        let exit = { x: 0, y: 0 };
+        let currentLevel = 1;
+        const totalLevels = 100;
+        let moves = 0;
+        let timer = 0;
+        let timerInterval;
+        let totalTime = 0;
+        let totalTimeInterval;
+        let gameStarted = false;
+
+        function mulberry32(seed) {
+            return function() {
+                let t = seed += 0x6D2B79F5;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            }
+        }
+
+        let rng;
+
+        function createMaze(width, height) {
+            grid = Array.from({ length: height }, () => Array(width).fill(true));
+            const stack = [];
+            const visited = Array(height).fill().map(() => Array(width).fill(false));
+
+            let currentCell = [1, 1];
+            visited[currentCell[0]][currentCell[1]] = true;
+            grid[currentCell[0]][currentCell[1]] = false;
+
+            while (true) {
+                const neighbors = getNeighbors(currentCell, visited, width, height);
+                if (neighbors.length > 0) {
+                    const next = neighbors[Math.floor(rng() * neighbors.length)];
+                    stack.push(currentCell);
+                    removeWall(currentCell, next);
+                    currentCell = next;
+                    visited[next[0]][next[1]] = true;
+                    grid[next[0]][next[1]] = false;
+                } else if (stack.length > 0) {
+                    currentCell = stack.pop();
+                } else {
+                    break;
+                }
+            }
+
+            grid[0][1] = false;
+            grid[height - 1][width - 2] = false;
+        }
+
+        function getNeighbors([x, y], visited, width, height) {
+            const neighbors = [];
+            const dirs = [[0, -2], [2, 0], [0, 2], [-2, 0]];
+            for (const [dx, dy] of dirs) {
+                const nx = x + dx, ny = y + dy;
+                if (nx >= 0 && nx < height && ny >= 0 && ny < width && !visited[nx][ny]) {
+                    neighbors.push([nx, ny]);
+                }
+            }
+            return neighbors;
+        }
+
+        function removeWall(from, to) {
+            const [fx, fy] = from, [tx, ty] = to;
+            const wx = Math.floor((fx + tx) / 2);
+            const wy = Math.floor((fy + ty) / 2);
+            grid[wx][wy] = false;
+        }
+
+        function drawMaze() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let y = 0; y < gridHeight; y++) {
+                for (let x = 0; x < gridWidth; x++) {
+                    ctx.fillStyle = grid[y][x] ? 'black' : 'white';
+                    ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                }
+            }
+            ctx.fillStyle = 'green';
+            ctx.fillRect(exit.x * cellSize, exit.y * cellSize, cellSize, cellSize);
+            ctx.fillStyle = 'red';
+            ctx.fillRect(player.x * cellSize, player.y * cellSize, cellSize, cellSize);
+        }
+
+        function updateDisplays() {
+            levelDisplay.textContent = `Level ${currentLevel}/${totalLevels}`;
+            movesDisplay.textContent = `Moves: ${moves}`;
+            const minutes = Math.floor(timer / 60);
+            const seconds = timer % 60;
+            timerDisplay.textContent = `Time: ${minutes}:${seconds.toString().padStart(2,'0')}`;
+            movesDisplay.style.display = 'block';
+        }
+
+        function updateTotalTime() {
+            const minutes = Math.floor(totalTime / 60);
+            const seconds = totalTime % 60;
+            totalTimeDisplay.textContent = `Total Time: ${minutes}:${seconds.toString().padStart(2,'0')}`;
+        }
+
+        function movePlayer(dx, dy) {
+            const newX = player.x + dx;
+            const newY = player.y + dy;
+            if (newX >= 0 && newX < gridWidth && newY >= 0 && newY < gridHeight && !grid[newY][newX]) {
+                player.x = newX;
+                player.y = newY;
+                moves++;
+                drawMaze();
+                checkWin();
+            }
+        }
+
+        function checkWin() {
+            if (player.x === exit.x && player.y === exit.y) {
+                if (currentLevel === totalLevels) {
+                    victoryScreen.style.display = 'flex';
+                    clearInterval(timerInterval);
+                    clearInterval(totalTimeInterval);
+
+                    const minutes = Math.floor(totalTime / 60);
+                    const seconds = totalTime % 60;
+                    victoryTime.textContent = `Total Time: ${minutes}:${seconds.toString().padStart(2,'0')}`;
+                } else {
+                    currentLevel++;
+                    initLevel();
+                }
+            }
+        }
+
+        function initLevel() {
+            clearInterval(timerInterval);
+            timer = 0;
+            moves = 0;
+            timerInterval = setInterval(() => {
+                timer++;
+                updateDisplays();
+            }, 1000);
+
+            rng = mulberry32(currentLevel);
+
+            const availableHeight = window.innerHeight - topBar.offsetHeight - 20;
+            const minHeight = 25;
+            const maxHeight = Math.min(Math.floor(availableHeight / 10), 51);
+
+            let height;
+            if (currentLevel > 95) {
+                height = maxHeight % 2 === 0 ? maxHeight - 1 : maxHeight;
+            } else {
+                const factor = (currentLevel - 1) / 94;
+                height = Math.floor(minHeight + factor * (maxHeight - minHeight));
+                if (height % 2 === 0) height += 1;
+            }
+            gridHeight = height;
+
+            const timerRect = timerDisplay.getBoundingClientRect();
+            const movesRect = movesDisplay.getBoundingClientRect();
+            const availableWidthPx = movesRect.right - timerRect.left;
+
+            let width = Math.floor(height * 1.8);
+            if (width % 2 === 0) width += 1;
+            if (width * 10 > availableWidthPx) {
+                width = Math.floor(availableWidthPx / 10);
+                if (width % 2 === 0) width -= 1;
+                if (width < 25) width = 25;
+            }
+            gridWidth = width;
+
+            const cellSizeByWidth = availableWidthPx / gridWidth;
+            const cellSizeByHeight = availableHeight / gridHeight;
+            cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+
+            canvas.width = cellSize * gridWidth;
+            canvas.height = cellSize * gridHeight;
+
+            createMaze(gridWidth, gridHeight);
+            player = { x: 1, y: 0 };
+            exit = { x: gridWidth - 2, y: gridHeight - 1 };
+            grid[player.y][player.x] = false;
+            grid[exit.y][exit.x] = false;
+
+            drawMaze();
+            updateDisplays();
+        }
+
+        function startGame() {
+            startScreen.style.display = 'none';
+            gameStarted = true;
+            totalTime = 0;
+            updateTotalTime();
+            if (totalTimeInterval) clearInterval(totalTimeInterval);
+            totalTimeInterval = setInterval(() => {
+                totalTime++;
+                updateTotalTime();
+            }, 1000);
+            initLevel();
+        }
+
+        function restartGame() {
+            victoryScreen.style.display = 'none';
+            startScreen.style.display = 'flex';
+            currentLevel = 1;
+            gameStarted = false;
+            clearInterval(timerInterval);
+            if (totalTimeInterval) clearInterval(totalTimeInterval);
+            totalTime = 0;
+            updateTotalTime();
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!gameStarted) return;
+            switch (e.code) {
+                case 'ArrowUp':
+                case 'KeyW':
+                    movePlayer(0, -1);
+                    break;
+                case 'ArrowDown':
+                case 'KeyS':
+                    movePlayer(0, 1);
+                    break;
+                case 'ArrowLeft':
+                case 'KeyA':
+                    movePlayer(-1, 0);
+                    break;
+                case 'ArrowRight':
+                case 'KeyD':
+                    movePlayer(1, 0);
+                    break;
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            if (!gameStarted) return;
+            initLevel();
+        });
+
+        updateDisplays();
+    </script>
+</body>
+</html>
