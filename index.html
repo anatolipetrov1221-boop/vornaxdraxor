@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Vornax Draxor</title>
+    <link rel="icon" href="favicon.png" type="image/png">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         html, body {
@@ -32,18 +33,21 @@
             margin-bottom: 10px;
             user-select: none;
         }
-        #timer, #moves {
+        #timer, #level-display, #moves {
             font-size: 1.3em;
-            flex: 1;
+            flex: 1; /* Всички 3 елемента заемат равна ширина */
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
-        #timer { text-align: left; }
-        #level-display {
-            font-size: 1.5em;
-            flex: 1;
-            text-align: center;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        #timer { 
+            text-align: left; 
         }
+        #level-display { 
+            text-align: center; 
+        }
+        #moves { 
+            text-align: right; 
+        }
+
         #maze_canvas {
             border: 3px solid white;
             border-radius: 10px;
@@ -146,6 +150,48 @@
             transform: scale(1.05);
             outline: none;
         }
+
+        /* --- TOUCH CONTROLS --- */
+        #touch-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+        .touch-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            color: white;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+            -webkit-tap-highlight-color: transparent;
+        }
+        .touch-btn:active {
+            background-color: rgba(255,255,255,0.4);
+            transform: scale(0.95);
+        }
+        @media (max-width: 768px) {
+            #touch-controls {
+                margin-top: 15px;
+            }
+            .touch-btn {
+                width: 55px;
+                height: 55px;
+                font-size: 1.3em;
+            }
+        }
     </style>
     <meta name="google-site-verification" content="MhSFLXWvsBQHTk_qgANoLEgSr6qkIlddMofIQW67XdI" />
     <!-- Google tag (gtag.js) -->
@@ -167,6 +213,14 @@
         </div>
         <canvas id="maze_canvas" aria-label="Maze game canvas"></canvas>
         <div id="total-time">Total Time: 0:00</div>
+
+        <!-- TOUCH CONTROLS FOR MOBILE -->
+        <div id="touch-controls" style="display: none;">
+            <div class="touch-btn" id="btn-up">↑</div>
+            <div class="touch-btn" id="btn-left">←</div>
+            <div class="touch-btn" id="btn-right">→</div>
+            <div class="touch-btn" id="btn-down">↓</div>
+        </div>
     </div>
 
     <div id="start-screen" role="dialog" aria-modal="true" aria-labelledby="welcome-title" aria-describedby="welcome-desc">
@@ -197,6 +251,13 @@
         const victoryScreen = document.getElementById('victory-screen');
         const victoryTime = document.getElementById('victory-time');
         const topBar = document.getElementById('top-bar');
+
+        // Touch controls
+        const touchControls = document.getElementById('touch-controls');
+        const btnUp = document.getElementById('btn-up');
+        const btnDown = document.getElementById('btn-down');
+        const btnLeft = document.getElementById('btn-left');
+        const btnRight = document.getElementById('btn-right');
 
         let grid = [];
         let gridWidth;
@@ -292,7 +353,6 @@
             const minutes = Math.floor(timer / 60);
             const seconds = timer % 60;
             timerDisplay.textContent = `Time: ${minutes}:${seconds.toString().padStart(2,'0')}`;
-            movesDisplay.style.display = 'block';
         }
 
         function updateTotalTime() {
@@ -383,6 +443,13 @@
 
             drawMaze();
             updateDisplays();
+
+            // Show/hide touch controls based on device
+            if (window.innerWidth <= 768) {
+                touchControls.style.display = 'flex';
+            } else {
+                touchControls.style.display = 'none';
+            }
         }
 
         function startGame() {
@@ -430,6 +497,30 @@
                     break;
             }
         });
+
+        // Touch controls for mobile
+        btnUp.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            movePlayer(0, -1);
+        });
+        btnDown.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            movePlayer(0, 1);
+        });
+        btnLeft.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            movePlayer(-1, 0);
+        });
+        btnRight.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            movePlayer(1, 0);
+        });
+
+        // Also support mouse click on touch buttons (for desktop testing)
+        btnUp.addEventListener('click', () => movePlayer(0, -1));
+        btnDown.addEventListener('click', () => movePlayer(0, 1));
+        btnLeft.addEventListener('click', () => movePlayer(-1, 0));
+        btnRight.addEventListener('click', () => movePlayer(1, 0));
 
         window.addEventListener('resize', () => {
             if (!gameStarted) return;
