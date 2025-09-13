@@ -527,6 +527,43 @@
             initLevel();
         });
 
+        // --- TOUCH SWIPE CONTROLS ---
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.getElementById('game-container').addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.getElementById('game-container').addEventListener('touchend', function(e) {
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+
+    // Минимална дистанция за свип (в пиксели)
+    const minSwipeDistance = 30;
+
+    // Ако е хоризонтален свип (по-голяма разлика по X)
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        if (diffX > minSwipeDistance) {
+            movePlayer(1, 0); // Свип надясно
+        } else if (diffX < -minSwipeDistance) {
+            movePlayer(-1, 0); // Свип наляво
+        }
+    } 
+    // Ако е вертикален свип (по-голяма разлика по Y)
+    else {
+        if (diffY > minSwipeDistance) {
+            movePlayer(0, 1); // Свип надолу
+        } else if (diffY < -minSwipeDistance) {
+            movePlayer(0, -1); // Свип нагоре
+        }
+    }
+}, { passive: true });
+
         updateDisplays();
     </script>
 </body>
