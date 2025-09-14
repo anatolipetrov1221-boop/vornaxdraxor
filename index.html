@@ -63,6 +63,32 @@
             user-select: none;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
+
+        /* --- RESTART BUTTON --- */
+        #restart-button {
+            margin-top: 10px;
+            padding: 12px 25px;
+            font-size: 1.1em;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #ff6600, #ff9500);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 3px 8px rgba(255, 102, 0, 0.6);
+            transition: background 0.3s ease, transform 0.2s ease;
+            user-select: none;
+            z-index: 5;
+            opacity: 0.9;
+            display: none; /* Initially hidden */
+        }
+        #restart-button:hover, #restart-button:focus {
+            background: linear-gradient(45deg, #ff5e00, #ff8f00);
+            transform: scale(1.05);
+            outline: none;
+            opacity: 1;
+        }
+
+        /* --- START SCREEN --- */
         #start-screen, #victory-screen {
             position: fixed;
             top: 0; left: 0;
@@ -119,6 +145,8 @@
             transform: scale(1.1);
             outline: none;
         }
+
+        /* --- VICTORY SCREEN --- */
         #victory-screen {
             background: rgba(0,0,0,0.9);
             display: none;
@@ -132,7 +160,19 @@
             margin-bottom: 20px;
             user-select: none;
         }
-        #restart-button {
+        #victory-title {
+            margin: 0 0 10px 0;
+        }
+        #victory-desc {
+            margin: 0 0 15px 0;
+            font-size: 1.8em;
+        }
+        #victory-time {
+            margin: 0 0 20px 0;
+            font-size: 1.6em;
+            font-weight: normal;
+        }
+        #restart-victory-button {
             margin-top: 25px;
             padding: 15px 40px;
             font-size: 1.3em;
@@ -145,7 +185,7 @@
             transition: background 0.3s ease, transform 0.2s ease;
             user-select: none;
         }
-        #restart-button:hover, #restart-button:focus {
+        #restart-victory-button:hover, #restart-victory-button:focus {
             background: linear-gradient(45deg, #ff5e00, #ff8f00);
             transform: scale(1.05);
             outline: none;
@@ -214,6 +254,9 @@
         <canvas id="maze_canvas" aria-label="Maze game canvas"></canvas>
         <div id="total-time">Total Time: 0:00</div>
 
+        <!-- RESTART BUTTON (visible only during gameplay, placed under total time) -->
+        <button id="restart-button">Restart Game</button>
+
         <!-- TOUCH CONTROLS FOR MOBILE -->
         <div id="touch-controls" style="display: none;">
             <div class="touch-btn" id="btn-up">↑</div>
@@ -237,7 +280,7 @@
         <h2 id="victory-title">Congratulations!</h2>
         <p id="victory-desc">You completed all 100 levels!</p>
         <p id="victory-time">Total Time: 0:00</p>
-        <button id="restart-button" onclick="restartGame()">Play Again</button>
+        <button id="restart-victory-button" onclick="restartGame()">Play Again</button>
     </div>
 
     <script>
@@ -251,6 +294,7 @@
         const victoryScreen = document.getElementById('victory-screen');
         const victoryTime = document.getElementById('victory-time');
         const topBar = document.getElementById('top-bar');
+        const restartButton = document.getElementById('restart-button'); // New restart button
 
         // Touch controls
         const touchControls = document.getElementById('touch-controls');
@@ -450,12 +494,15 @@
             } else {
                 touchControls.style.display = 'none';
             }
+
+            // Show restart button during gameplay
+            restartButton.style.display = 'block';
         }
 
         function startGame() {
             startScreen.style.display = 'none';
             gameStarted = true;
-            totalTime = 0;
+            totalTime = 0; // Reset total time when starting a new game
             updateTotalTime();
             if (totalTimeInterval) clearInterval(totalTimeInterval);
             totalTimeInterval = setInterval(() => {
@@ -466,14 +513,41 @@
         }
 
         function restartGame() {
+            // This is called from the Victory Screen "Play Again"
             victoryScreen.style.display = 'none';
             startScreen.style.display = 'flex';
             currentLevel = 1;
             gameStarted = false;
             clearInterval(timerInterval);
             if (totalTimeInterval) clearInterval(totalTimeInterval);
-            totalTime = 0;
+            totalTime = 0; // Reset total time when going back to menu
             updateTotalTime();
+            restartButton.style.display = 'none'; // Hide restart button on main menu
+        }
+
+        // NEW FUNCTION: Restart the entire game from Level 1
+        function restartEntireGame() {
+            // Stop all timers
+            clearInterval(timerInterval);
+            clearInterval(totalTimeInterval);
+            
+            // Reset all game state to initial values
+            currentLevel = 1;
+            moves = 0;
+            timer = 0;
+            totalTime = 0;
+            gameStarted = false;
+            
+            // Update displays to show zeros
+            updateDisplays();
+            updateTotalTime();
+            
+            // Hide the game UI and show the start screen
+            restartButton.style.display = 'none';
+            startScreen.style.display = 'flex';
+            
+            // Clear any existing canvas drawing
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
 
         document.addEventListener('keydown', (e) => {
@@ -494,6 +568,10 @@
                 case 'ArrowRight':
                 case 'KeyD':
                     movePlayer(1, 0);
+                    break;
+                case 'KeyR': // Press 'R' to restart game
+                    e.preventDefault();
+                    restartEntireGame();
                     break;
             }
         });
@@ -522,48 +600,52 @@
         btnLeft.addEventListener('click', () => movePlayer(-1, 0));
         btnRight.addEventListener('click', () => movePlayer(1, 0));
 
+        // Click handler for the new restart button (now restarts the ENTIRE game)
+        restartButton.addEventListener('click', restartEntireGame);
+
         window.addEventListener('resize', () => {
             if (!gameStarted) return;
             initLevel();
         });
 
         // --- TOUCH SWIPE CONTROLS ---
-let touchStartX = 0;
-let touchStartY = 0;
+        let touchStartX = 0;
+        let touchStartY = 0;
 
-document.getElementById('game-container').addEventListener('touchstart', function(e) {
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-}, { passive: true });
+        document.getElementById('game-container').addEventListener('touchstart', function(e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }, { passive: true });
 
-document.getElementById('game-container').addEventListener('touchend', function(e) {
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
+        document.getElementById('game-container').addEventListener('touchend', function(e) {
+            const touchEndX = e.changedTouches[0].clientX;
+            const touchEndY = e.changedTouches[0].clientY;
 
-    const diffX = touchEndX - touchStartX;
-    const diffY = touchEndY - touchStartY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
 
-    // Минимална дистанция за свип (в пиксели)
-    const minSwipeDistance = 30;
+            // Минимална дистанция за свип (в пиксели)
+            const minSwipeDistance = 30;
 
-    // Ако е хоризонтален свип (по-голяма разлика по X)
-    if (Math.abs(diffX) > Math.abs(diffY)) {
-        if (diffX > minSwipeDistance) {
-            movePlayer(1, 0); // Свип надясно
-        } else if (diffX < -minSwipeDistance) {
-            movePlayer(-1, 0); // Свип наляво
-        }
-    } 
-    // Ако е вертикален свип (по-голяма разлика по Y)
-    else {
-        if (diffY > minSwipeDistance) {
-            movePlayer(0, 1); // Свип надолу
-        } else if (diffY < -minSwipeDistance) {
-            movePlayer(0, -1); // Свип нагоре
-        }
-    }
-}, { passive: true });
+            // Ако е хоризонтален свип (по-голяма разлика по X)
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                if (diffX > minSwipeDistance) {
+                    movePlayer(1, 0); // Свип надясно
+                } else if (diffX < -minSwipeDistance) {
+                    movePlayer(-1, 0); // Свип наляво
+                }
+            } 
+            // Ако е вертикален свип (по-голяма разлика по Y)
+            else {
+                if (diffY > minSwipeDistance) {
+                    movePlayer(0, 1); // Свип надолу
+                } else if (diffY < -minSwipeDistance) {
+                    movePlayer(0, -1); // Свип нагоре
+                }
+            }
+        }, { passive: true });
 
+        // Initialize displays on load
         updateDisplays();
     </script>
 </body>
